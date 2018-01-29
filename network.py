@@ -31,22 +31,27 @@ class Network(nn.Moudle):
 
 # input is 4 x 4 x in_c
 class D(nn.Module):
+    """
+    input : ? x 4 x 4 x 6(3 x 2)
+    layer0 : ? x 8 x 8 x 32 
+    layer1 : ? x 16 x 16 x 64 
+    layer2 : ? x 32 x 32 x 128 
+    layer3 : ? x 31 x 31 x 256 
+    output : ? x 30 x 30 x 1 
+    """
     def __init__(self, in_c):
         self.name = "D"
         
         self.build()
 
-    256 128 64  32      
-    # 0  1  2   3   4   5
-    # 6 32 64 128 256 512
     def build(self):
         activation = 'leaky_relu'
 
-        layer0 = conv_block(0, self.name, 6, 32, activation, bn=False)) # 128 128 32
-        layer1 = conv_block(1, self.name, 32, 64, activation)) # 64 64 64
-        layer2 = conv_block(2, self.name, 64, 128, activation)) # 32 32 128
-        layer3 = conv_block(3, self.name, 128, 256, activation, kernel_size=2, stride=1, padding=0)) # 31 31 256
-        layer4 = conv_block(4, self.name, 256, 1, 'sigmoid', kernel_size=2, stride=1, padding=0 )) # 30 30 1
+        layer0 = conv_block(0, self.name, 6, 32, activation, bn=False)
+        layer1 = conv_block(1, self.name, 32, 64, activation)
+        layer2 = conv_block(2, self.name, 64, 128, activation)
+        layer3 = conv_block(3, self.name, 128, 256, activation, kernel_size=2, stride=1, padding=0) 
+        layer4 = conv_block(4, self.name, 256, 1, 'sigmoid', kernel_size=2, stride=1, padding=0)
 
         self.layer0 = layer0
         self.layer1 = layer1
