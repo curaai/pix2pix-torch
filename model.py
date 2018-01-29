@@ -34,8 +34,7 @@ class Pix2Pix:
 
         self.gpu = gpu
 
-        self.transform = transforms.Compose([transforms.RandomHorizontalFlip(), 
-                                             transforms.ToTensor(),
+        self.transform = transforms.Compose([transforms.ToTensor(),
                                              transforms.Normalize((0.485, 0.456, 0.406),
                                                                   (0.229, 0.224, 0.225))])
 
@@ -55,10 +54,10 @@ class Pix2Pix:
         if self.gpu:
             self.D = self.D.cuda()
             self.G = self.G.cuda()
-            ones, zeros = Variable(torch.ones(self.batch_size, 1).cuda()), Variable(torch.zeros(self.batch_size, 1).cuda())
+            ones, zeros = Variable(torch.ones(self.batch_size, 1, 30, 30).cuda()), Variable(torch.zeros(self.batch_size, 1, 30, 30).cuda())
             BCE_loss = nn.BCELoss().cuda()
         else:
-            ones, zeros = Variable(torch.ones(self.batch_size, 1)), Variable(torch.zeros(self.batch_size, 1))
+            ones, zeros = Variable(torch.ones(self.batch_size, 1, 30, 30)), Variable(torch.zeros(self.batch_size, 1, 30, 30))
             BCE_loss = nn.BCELoss()
 
         self.D.train()
@@ -81,32 +80,32 @@ class Pix2Pix:
                 D_trg_input = self.D(trg_input, trg_input)
 
                 # training D
-                D_fake_loss = BCE_loss(d_src_generated, zeros)
-                D_real_loss = BCE_loss(d_trg_input, ones)
-                D_loss = d_fake_loss + d_real_loss
-                D_loss.backward()
+                D_fake_loss = BCE_loss(D_src_generated, zeros)
+                D_real_loss = BCE_loss(D_trg_input, ones)
+                D_loss = D_fake_loss + D_real_loss
+                D_loss.backward(retain_graph=True)
                 D_adam.step()
 
-                for p in D.parameters():
+                for p in self.D.parameters():
                     p.requires_grad = False
                 
                 # training G
                 G_loss = BCE_loss(D_src_generated, ones)
-                G_loss.backward()
+                G_loss.backward(retain_graph=True)
                 G_adam.step()
                 
-                for p in G.parameters():
+                for p in self.D.parameters():
                     p.requires_grad = True
 
                 # logging losses
                 if step % 20 == 0:
-                    print(f"Epoch: {epoch} & Step: {step} => D-fake Loss: {D_fake_loss}, D-real Loss: {D_real_loss}, G Loss: {G_loss}")
+                    print(f"Epoch: {epoch} & Step: {step} => D-fake Loss: {D_fake_loss.data}, D-real Loss: {D_real_loss.data}, G Loss: {G_loss.data}")
                     
                 # save sample images 
                 if step % 100 == 0:
-                    vutils.save_image(src_input[0], os.paht.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-src_input.jpg'), normalize = True)
-                    vutils.save_image(trg_input[0], os.paht.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-trg_input.jpg'), normalize = True)
-                    vutils.save_image(src_generated.data[0], os.paht.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-generated.jpg'), normalize = True)
+                    vutils.save_image(src_data[0], os.path.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-src_input.jpg'))
+                    vutils.save_image(trg_data[0], os.path.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-trg_input.jpg'))
+                    vutils.save_image(src_generated.data[0], os.path.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-generated.jpg'))
 
             # save model
             if epoch % 100 == 0 and epoch != 0:

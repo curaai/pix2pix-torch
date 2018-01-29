@@ -139,9 +139,9 @@ class D(nn.Module):
     def build(self):
         activation = 'leaky_relu'
 
-        self.layer0 = conv_block('0', self.name, 6, 32, activation, bn=False)
+        self.layer0 = conv_block('0', self.name, 6, 32, activation, bn=False, kernel_size=4, stride=2)
 
-        self.layer1_0 = conv_block('1_0', self.name, 32, 64, activation)
+        self.layer1_0 = conv_block('1_0', self.name, 32, 64, activation, kernel_size=4, stride=2)
         self.layer1_1 = conv_block('1_1', self.name, 64, 64, activation)
 
         self.layer2_0 = conv_block('2_0', self.name, 64, 128, activation)
