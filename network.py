@@ -51,7 +51,7 @@ class G(nn.Module):
         self.pooling = nn.Sequential(nn.AvgPool2d((2, 2), 2))
 
         # down
-        self.layer0_0 = conv_block('0_0', self.name, 3, 32, activation)
+        self.layer0_0 = conv_block('0_0', self.name, 3, 32, activation, kernel_size=4, stride=2)
         self.layer0_1 = conv_block('0_1', self.name, 32, 32, activation)
 
         self.layer1_0 = conv_block('1_0', self.name, 32, 64, activation, kernel_size=4, stride=2)
@@ -64,13 +64,10 @@ class G(nn.Module):
         self.layer3_2 = conv_block('3_2', self.name, 256, 256, activation) 
         
         self.layer4_0 = conv_block('4_0', self.name, 256, 512, activation, kernel_size=4, stride=2)
-        self.layer4_2 = conv_block('4_2', self.name, 512, 512, activation)
-
-        self.layer5_0 = conv_block('5_0', self.name, 512, 1024, activation, kernel_size=4, stride=2)
-        self.layer5_2 = conv_block('5_2', self.name, 1024, 512, activation)
+        self.layer4_2 = conv_block('4_2', self.name, 512, 256, activation)
 
         # up
-        self.dlayer4_0 = conv_block('up4_0', self.name, 1024, 512, activation, transpose=True, kernel_size=4, stride=2)
+        self.dlayer4_0 = conv_block('up4_0', self.name, 512, 512, activation, transpose=True, kernel_size=4, stride=2)
         self.dlayer4_2 = conv_block('up4_2', self.name, 512, 256, activation)
 
         self.dlayer3_0 = conv_block('up3_0', self.name, 512, 256, activation, transpose=True, kernel_size=4, stride=2)
@@ -100,28 +97,24 @@ class G(nn.Module):
 
         out4_0 = self.layer4_0(out3_2)
         out4_2 = self.layer4_2(out4_0)
-
-        out5_0 = self.layer5_0(out4_2)
-        out5_2 = self.layer5_2(out5_0)
-
         
-        cat_out5_2 = torch.cat((out5_2, self.pooling(out4_2)), 1)
+        cat_out5_2 = torch.cat((out4_2, self.pooling(out3_2)), 1)
         dout4_0 = self.dlayer4_0(cat_out5_2)
         dout4_2 = self.dlayer4_2(dout4_0)
 
-        cat_out4_2 = torch.cat((dout4_2, self.pooling(out3_2)), 1)
+        cat_out4_2 = torch.cat((dout4_2, out3_2), 1)
         dout3_0 = self.dlayer3_0(cat_out4_2)
         dout3_2 = self.dlayer3_2(dout3_0)
 
-        cat_out3_2 = torch.cat((dout3_2, self.pooling(out2_1)), 1)
+        cat_out3_2 = torch.cat((dout3_2, out2_1), 1)
         dout2_0 = self.dlayer2_0(cat_out3_2)
         dout2_1 = self.dlayer2_1(dout2_0)
 
-        cat_out2_1 = torch.cat((dout2_1, self.pooling(out1_1)), 1)
+        cat_out2_1 = torch.cat((dout2_1, out1_1), 1)
         dout1_0 = self.dlayer1_0(cat_out2_1)
         dout1_1 = self.dlayer1_1(dout1_0)
 
-        cat_out1_1 = torch.cat((dout1_1, self.pooling(out0_1)), 1)
+        cat_out1_1 = torch.cat((dout1_1, out0_1), 1)
         dout0_0 = self.dlayer0_0(cat_out1_1)
         dout0_1 = self.dlayer0_1(dout0_0)
 
