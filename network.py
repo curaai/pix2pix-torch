@@ -24,7 +24,7 @@ def conv_block(idx, name, in_c, out_c, activation, kernel_size=3, stride=1, padd
     
     return block
 
-class G(nn.Moudle):
+class G(nn.Module):
     """
     input : ? x 128 x 128 x 3
     layer0 : ? x 64 x 64 x 32
@@ -33,6 +33,12 @@ class G(nn.Moudle):
     layer3 : ? x 8 x 8 x 256
     layer4 : ? x 4 x 4 x 512
     layer5 : ? x 2 x 2 x 1024
+
+    dlayer4 : ? x 4 x 4 x 512
+    dlayer3 : ? x 8 x 8 x 256
+    dlayer2 : ? x 16 x 16 x 128
+    dlayer1 : ? x 32 x 32 x 64
+    dlayer0 : ? x 64 x 64 x 32
     """
     def __init__(self):
         self.name = "G"
@@ -80,7 +86,7 @@ class G(nn.Moudle):
         self.dlayer1_1 = conv_block('up1_1', self.name, 64, 32, activation)
 
         self.dlayer0_0 = conv_block('up0_0', self.name, 64, 32, activation, transpose=True, kernel_size=4, stride=2))
-        self.dlayer0_1 = conv_block('up0_1', self.name, 32, 3, 'tanh')
+        self.dlayer0_1 = conv_block('up0_1', self.name, 32, 3, 'tanh', transpose=True, kernel_size=4, stride=2)
 
     def forward(self, x):
         out0_0 = self.layer0_0(x)
@@ -182,5 +188,3 @@ class D(nn.Module):
         out4_2 = self.layer4_2(out4_1)
 
         return out4_2
-        
-    
