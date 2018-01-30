@@ -4,9 +4,9 @@ from model import Pix2Pix
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', default=8, type=int)
+    parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--epoch_iter', default=1000, type=int)
-    parser.add_argument('--lr', default=0.00001, type=float)
+    parser.add_argument('--lr', default=0.0002, type=float)
     parser.add_argument('--src_path', default='data/source/crop_gray', type=str, help="src iamge dataset")
     parser.add_argument('--trg_path', default='data/target/crop_color', type=str, help="trg image dataset")
     parser.add_argument('--sample_path', default='samples', type=str, help="save sample images while training")

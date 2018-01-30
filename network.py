@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 
 
-def conv_block(idx, name, in_c, out_c, activation, kernel_size=3, stride=1, padding=1, transpose=False, bn=True, bias=True, ):
+def conv_block(idx, name, in_c, out_c, activation, kernel_size=3, stride=1, padding=1, transpose=False, bn=True, bias=True, drop=False):
     block = nn.Sequential()
 
     if not transpose:
@@ -21,6 +21,8 @@ def conv_block(idx, name, in_c, out_c, activation, kernel_size=3, stride=1, padd
         block.add_module(name + ' Sigmoid' + idx, nn.Sigmoid())
     elif activation == 'tanh':
         block.add_module(name + ' Tanh' + idx, nn.Tanh())
+    if drop:
+        block.add_module(name + " Drop_out" + idx, nn.Dropout())
     
     return block
 
@@ -61,14 +63,14 @@ class G(nn.Module):
         self.layer2_1 = conv_block('2_1', self.name, 128, 128, activation)
 
         self.layer3_0 = conv_block('3_0', self.name, 128, 256, activation, kernel_size=4, stride=2) 
-        self.layer3_2 = conv_block('3_2', self.name, 256, 256, activation) 
+        self.layer3_2 = conv_block('3_2', self.name, 256, 256, activation, drop=True) 
         
         self.layer4_0 = conv_block('4_0', self.name, 256, 512, activation, kernel_size=4, stride=2)
         self.layer4_2 = conv_block('4_2', self.name, 512, 256, activation)
 
         # up
         self.dlayer4_0 = conv_block('up4_0', self.name, 512, 512, activation, transpose=True, kernel_size=4, stride=2)
-        self.dlayer4_2 = conv_block('up4_2', self.name, 512, 256, activation)
+        self.dlayer4_2 = conv_block('up4_2', self.name, 512, 256, activation, drop=True)
 
         self.dlayer3_0 = conv_block('up3_0', self.name, 512, 256, activation, transpose=True, kernel_size=4, stride=2)
         self.dlayer3_2 = conv_block('up3_2', self.name, 256, 128, activation)

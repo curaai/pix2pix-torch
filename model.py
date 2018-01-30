@@ -31,12 +31,14 @@ class Pix2Pix:
 
         self.D = D()
         self.G = G()
+        self.d_step = 4
+        self.g_step = 1
 
         self.gpu = gpu
 
-        self.transform = transforms.Compose([transforms.ToTensor(),
-                                             transforms.Normalize((0.485, 0.456, 0.406),
-                                                                  (0.229, 0.224, 0.225))])
+        self.transform = transforms.Compose([transforms.ToTensor()])
+                                            #  transforms.Normalize((0.485, 0.456, 0.406),
+                                            #                       (0.229, 0.224, 0.225))])
 
     def load_dataset(self):
         src_data = dset.ImageFolder(self.src_path, self.transformations)
@@ -48,8 +50,8 @@ class Pix2Pix:
         data_loader = get_loader(self.batch_size, self.src_path, self.trg_path, self.transform)
         print('Dataset Load Success!')
 
-        D_adam = optim.Adam(self.D.parameters(), lr=self.lr)
-        G_adam = optim.Adam(self.G.parameters(), lr=self.lr)
+        D_adam = optim.Adam(self.D.parameters(), lr=self.lr, betas=(0.5, 0.999))
+        G_adam = optim.Adam(self.G.parameters(), lr=self.lr, betas=(0.5, 0.999))
 
         if self.gpu:
             self.D = self.D.cuda()
@@ -65,35 +67,41 @@ class Pix2Pix:
         print('Training Start')
         for epoch in range(self.epoch_iter):
             for step, (src, trg) in enumerate(data_loader):
-                src_data = src
-                trg_data = trg
+                for d_i in range(self.d_step):
+                    src, trg = iter(data_loader).next()
+                    src_data = src.cuda()
+                    trg_data = trg.cuda()
 
-                self.D.zero_grad()
-                self.G.zero_grad()
+                    self.D.zero_grad()
+                    self.G.zero_grad()
 
-                src_input = Variable(src_data.cuda())
-                trg_input = Variable(trg_data.cuda())
+                    src_input = Variable(src_data.cuda())
+                    trg_input = Variable(trg_data.cuda())
 
-                src_generated = self.G(src_input)
+                    src_generated = self.G(src_input)
 
-                D_src_generated = self.D(src_generated, trg_input)
-                D_trg_input = self.D(trg_input, trg_input)
+                    D_src_generated = self.D(src_generated, trg_input)
+                    D_trg_input = self.D(trg_input, trg_input)
 
-                # training D
-                D_fake_loss = BCE_loss(D_src_generated, zeros)
-                D_real_loss = BCE_loss(D_trg_input, ones)
-                D_loss = D_fake_loss + D_real_loss
-                D_loss.backward(retain_graph=True)
-                D_adam.step()
-
+                    # training D
+                    D_fake_loss = BCE_loss(D_src_generated, zeros)
+                    D_real_loss = BCE_loss(D_trg_input, ones)
+                    D_loss = D_fake_loss + D_real_loss
+                    D_loss.backward(retain_graph=True)
+                    D_adam.step()
+                
                 for p in self.D.parameters():
                     p.requires_grad = False
                 
-                # training G
-                G_loss = BCE_loss(D_src_generated, ones)
-                G_loss.backward(retain_graph=True)
-                G_adam.step()
-                
+                for g_i in range(self.g_step):
+                    # training G
+                    G_fake_loss = BCE_loss(D_src_generated, ones)
+                    G_distance_loss = torch.mean(torch.abs(src_generated - trg_input)) * 5
+                    G_loss = G_fake_loss + G_distance_loss
+                    G_loss.backward(retain_graph=True)
+                    G_adam.step()
+                    
+                    
                 for p in self.D.parameters():
                     p.requires_grad = True
 

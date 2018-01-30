@@ -39,16 +39,8 @@ def get_loader(batch_size, src_path, trg_path, transform, shuffle=True):
     return dataloader
 
 if __name__ == '__main__':
+    a = torch.cuda.device(0)
+    b = torch.cuda.device(1)
 
-    transform = transforms.Compose([
-                                    transforms.RandomHorizontalFlip(), 
-                                    transforms.ToTensor() ,
-                                    transforms.Normalize((0.485, 0.456, 0.406),
-                                                         (0.229, 0.224, 0.225))
-                                    ])
-
-    loader = get_loader(30, 'data/source/crop_gray', 'data/target/crop_color', transform)
-    for idx, (src, trg) in enumerate(loader):
-        print(idx)
-        print(type(src))
+    pass
     
