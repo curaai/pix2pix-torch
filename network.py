@@ -14,7 +14,7 @@ def conv_block(idx, name, in_c, out_c, activation, kernel_size=3, stride=1, padd
     if bn:
         block.add_module(name + ' Batch_norm' + idx, nn.BatchNorm2d(out_c))
     if activation == 'relu':
-        block.add_module(name + ' ReLU' + idx, nn.ReLU(inplace=True))
+        block.add_module(name + ' ReLU' + idx, nn.ELU(inplace=True))
     elif activation == 'leaky_relu':
         block.add_module(name + ' Leaky_ReLU' + idx, nn.LeakyReLU(0.2, inplace=True))
     elif activation == 'sigmoid':
@@ -47,6 +47,14 @@ class G(nn.Module):
         self.name = "G"
 
         self.build()
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, (2. / n) ** 0.5)
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
 
     def build(self):
         activation = 'leaky_relu'
@@ -137,6 +145,14 @@ class D(nn.Module):
         self.name = "D"
         
         self.build()
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, (2. / n) ** 0.5)
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
 
     def build(self):
         activation = 'leaky_relu'

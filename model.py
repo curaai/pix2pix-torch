@@ -4,7 +4,9 @@ import numpy as np
 
 import torch
 import torchvision
+import torch.functional as F
 import torch.nn as nn
+import torch.nn.init as init
 import torch.optim as optim
 import torchvision.datasets as dset
 import torchvision.utils as vutils
@@ -31,14 +33,14 @@ class Pix2Pix:
 
         self.D = D()
         self.G = G()
-        self.d_step = 4
+        self.d_step = 1
         self.g_step = 1
 
         self.gpu = gpu
 
-        self.transform = transforms.Compose([transforms.ToTensor()])
-                                            #  transforms.Normalize((0.485, 0.456, 0.406),
-                                            #                       (0.229, 0.224, 0.225))])
+        self.transform = transforms.Compose([transforms.ToTensor(),
+                                             transforms.Normalize((0.485, 0.456, 0.406),
+                                                                  (0.229, 0.224, 0.225))])
 
     def load_dataset(self):
         src_data = dset.ImageFolder(self.src_path, self.transformations)
@@ -58,9 +60,13 @@ class Pix2Pix:
             self.G = self.G.cuda()
             ones, zeros = Variable(torch.ones(self.batch_size, 1, 30, 30).cuda()), Variable(torch.zeros(self.batch_size, 1, 30, 30).cuda())
             BCE_loss = nn.BCELoss().cuda()
+            L1_loss = nn.L1Loss().cuda()
+            MSE_loss = nn.MSELoss().cuda()
         else:
             ones, zeros = Variable(torch.ones(self.batch_size, 1, 30, 30)), Variable(torch.zeros(self.batch_size, 1, 30, 30))
             BCE_loss = nn.BCELoss()
+            L1_loss = nn.L1Loss()
+            MSE_loss = nn.MSELoss()
 
         self.D.train()
         self.G.train()
@@ -96,7 +102,7 @@ class Pix2Pix:
                 for g_i in range(self.g_step):
                     # training G
                     G_fake_loss = BCE_loss(D_src_generated, ones)
-                    G_distance_loss = torch.mean(torch.abs(src_generated - trg_input)) * 5
+                    G_distance_loss = MSE_loss(src_generated, trg_input) * 100
                     G_loss = G_fake_loss + G_distance_loss
                     G_loss.backward(retain_graph=True)
                     G_adam.step()
@@ -110,12 +116,11 @@ class Pix2Pix:
                     print(f"Epoch: {epoch} & Step: {step} => D-fake Loss: {D_fake_loss.data}, D-real Loss: {D_real_loss.data}, G Loss: {G_loss.data}")
                     
                 # save sample images 
-                if step % 100 == 0:
+                if step % 50 == 0:
                     vutils.save_image(src_data[0], os.path.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-src_input.jpg'))
                     vutils.save_image(trg_data[0], os.path.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-trg_input.jpg'))
                     vutils.save_image(src_generated.data[0], os.path.join(self.sample_img_path, f'epoch-{epoch}-step-{step}-generated.jpg'))
 
             # save model
-            if epoch % 100 == 0 and epoch != 0:
-                torch.save(self.D.state_dict(), os.path.join(self.save_model_path, str(epoch) + 'D' + '.pth'))
-                torch.save(self.G.state_dict(), os.path.join(self.save_model_path, str(epoch) + 'G' + '.pth'))
+            torch.save(self.D.state_dict(), os.path.join(self.save_model_path, str(epoch) + 'D' + '.pth'))
+            torch.save(self.G.state_dict(), os.path.join(self.save_model_path, str(epoch) + 'G' + '.pth'))
