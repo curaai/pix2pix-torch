@@ -20,7 +20,7 @@ from dataset import get_loader
 
 
 class Pix2Pix:
-    def __init__(self, batch_size, epoch_iter, lr, src_path, trg_path, sample_img_path, save_model_path, restore_model_path, gpu):
+    def __init__(self, batch_size, epoch_iter, lr, src_path, trg_path, sample_img_path, save_model_path, restore_D_model_path, restore_G_model_path, gpu):
         self.batch_size = batch_size
         self.epoch_iter = epoch_iter
         self.lr = lr
@@ -29,7 +29,8 @@ class Pix2Pix:
         self.trg_path = trg_path
         self.sample_img_path = sample_img_path
         self.save_model_path = save_model_path
-        self.restore_model_path = restore_model_path
+        self.restore_D_model_path = restore_D_model_path
+        self.restore_G_model_path = restore_G_model_path
 
         self.D = D()
         self.G = G()
@@ -38,9 +39,9 @@ class Pix2Pix:
 
         self.gpu = gpu
 
-        self.transform = transforms.Compose([transforms.ToTensor(),
-                                             transforms.Normalize((0.485, 0.456, 0.406),
-                                                                  (0.229, 0.224, 0.225))])
+        self.transform = transforms.Compose([transforms.ToTensor()])
+                                            #  transforms.Normalize((0.485, 0.456, 0.406),
+                                            #                       (0.229, 0.224, 0.225))])
 
     def load_dataset(self):
         src_data = dset.ImageFolder(self.src_path, self.transformations)
@@ -51,6 +52,11 @@ class Pix2Pix:
     def train(self):
         data_loader = get_loader(self.batch_size, self.src_path, self.trg_path, self.transform)
         print('Dataset Load Success!')
+
+        if len(self.restore_G_model_path):
+            self.D.load_state_dict(torch.load(self.restore_D_model_path))
+            self.G.load_state_dict(torch.load(self.restore_G_model_path))
+            print('Pretrained model load success!')
 
         D_adam = optim.Adam(self.D.parameters(), lr=self.lr, betas=(0.5, 0.999))
         G_adam = optim.Adam(self.G.parameters(), lr=self.lr, betas=(0.5, 0.999))
@@ -71,7 +77,7 @@ class Pix2Pix:
         self.D.train()
         self.G.train()
         print('Training Start')
-        for epoch in range(self.epoch_iter):
+        for epoch in range(3, self.epoch_iter):
             for step, (src, trg) in enumerate(data_loader):
                 for d_i in range(self.d_step):
                     src, trg = iter(data_loader).next()
@@ -124,3 +130,4 @@ class Pix2Pix:
             # save model
             torch.save(self.D.state_dict(), os.path.join(self.save_model_path, str(epoch) + 'D' + '.pth'))
             torch.save(self.G.state_dict(), os.path.join(self.save_model_path, str(epoch) + 'G' + '.pth'))
+                

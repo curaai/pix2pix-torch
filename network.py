@@ -26,6 +26,7 @@ def conv_block(idx, name, in_c, out_c, activation, kernel_size=3, stride=1, padd
     
     return block
 
+
 class G(nn.Module):
     """
     input : ? x 128 x 128 x 3
